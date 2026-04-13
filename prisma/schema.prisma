@@ -7,37 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@index([userId])
-  @@map("account")
-}
-
-model Address {
-  id      String @id
-  type    String
-  address String
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("address")
-}
-
 model MenuItem {
   id            Int         @id @default(autoincrement())
   nameEn        String
@@ -72,12 +41,10 @@ model Order {
   rating            Int?
   userId            String
   deliveryPartnerId String?
-  deliveryPartner   User?       @relation("OrderDeliveryPartner", fields: [deliveryPartnerId], references: [id])
-  user              User        @relation("OrderUser", fields: [userId], references: [id])
   items             OrderItem[]
 
-  @@index([deliveryPartnerId])
   @@index([userId])
+  @@index([deliveryPartnerId])
   @@map("order")
 }
 
@@ -93,53 +60,4 @@ model OrderItem {
   @@index([menuItemId])
   @@index([orderId])
   @@map("orderitem")
-}
-
-model Session {
-  id           String   @id
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("session")
-}
-
-model User {
-  id              String    @id
-  name            String?
-  email           String?   @unique
-  emailVerified   DateTime?
-  image           String?
-  hashedPassword  String?
-  role            UserRole  @default(USER)
-  phone           String?
-  status          String    @default("ACTIVE")
-  vehicle         String?
-  rating          Float?
-  isOnline        Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  accounts        Account[]
-  addresses       Address[]
-  ordersAsPartner Order[]   @relation("OrderDeliveryPartner")
-  orders          Order[]   @relation("OrderUser")
-  sessions        Session[]
-
-  @@map("user")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verificationtoken")
-}
-
-enum UserRole {
-  USER
-  ADMIN
-  DELIVERY_PARTNER
 }

@@ -15,26 +15,18 @@ export const authOptions: AuthOptions = {
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          // Only Biryanispot.kwt@gmail.com gets ADMIN rights, everyone else is a USER
-          role: profile.email?.toLowerCase() === 'biryanispot.kwt@gmail.com' ? 'ADMIN' : 'USER'
-        }
+          role: profile.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase()
+            ? 'ADMIN'
+            : 'USER'
+        };
       }
     })
   ],
   session: {
-    // We use JWT because CredentialsProvider requires JWT strategy
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
-    async signIn({ user }) {
-      // Only allow the admin email to sign in for now
-      if (user.email?.toLowerCase() === 'biryanispot.kwt@gmail.com') {
-        return true;
-      }
-      // Stop login for all other users and riders
-      return false;
-    },
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
@@ -43,11 +35,6 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // ENFORCE ADMIN ONLY: If they are not an admin, we kill the session
-      if (token.role !== 'ADMIN') {
-        return null as any; 
-      }
-
       if (session.user) {
         session.user.role = token.role as string;
         session.user.id = token.id as string;
@@ -63,5 +50,4 @@ export const authOptions: AuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

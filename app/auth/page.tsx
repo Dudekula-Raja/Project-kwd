@@ -12,9 +12,7 @@ export default function AuthPage() {
 
   const handleGoogleSignIn = () => {
      setLoading(true);
-     // Redirect to /admin directly if they happen to be the admin. 
-     // We will just redirect to /user by default and Navbar will show Admin Panel if they have rights.
-     signIn('google', { callbackUrl: '/' });
+     signIn('google', { callbackUrl: '/user' });
   };
 
   return (

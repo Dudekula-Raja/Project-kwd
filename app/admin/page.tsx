@@ -57,9 +57,13 @@ export default function AdminPage() {
         fetch('/api/orders'),
         fetch('/api/users')
       ]);
-      setItems(await menuRes.json());
-      setOrders(await ordersRes.json());
-      setUsers(await usersRes.json());
+      const menuData = await menuRes.json();
+      const ordersData = await ordersRes.json();
+      const usersData = await usersRes.json();
+
+      setItems(Array.isArray(menuData) ? menuData : []);
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
     } finally {

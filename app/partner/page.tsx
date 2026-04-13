@@ -21,8 +21,11 @@ export default function PartnerDashboard() {
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || user?.role !== 'DELIVERY_PARTNER')) {
+    if (!isLoading && !isAuthenticated) {
       router.push('/auth');
+    }
+    if (!isLoading && isAuthenticated && user?.role !== 'DELIVERY_PARTNER') {
+      router.push('/');
     }
   }, [isAuthenticated, user, isLoading, router]);
 

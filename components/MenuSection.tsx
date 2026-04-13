@@ -39,7 +39,7 @@ export default function MenuSection() {
         item.nameAr.includes(search);
       return matchCategory && matchVeg && matchSearch;
     });
-  }, [activeCategory, vegOnly, search]);
+  }, [activeCategory, vegOnly, search, menuItems]);
 
   const uniqueCategories = Array.from(new Set(['breakfast', 'lunch', 'dinner', 'snacks', 'biryani', ...menuItems.map(item => item.category)]));
   const allCategories = [

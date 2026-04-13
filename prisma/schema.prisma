@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model account {
+model Account {
   id                String  @id
   userId            String
   type              String
@@ -20,23 +20,25 @@ model account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-  user              user    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Account_userId_fkey")
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
-  @@index([userId], map: "Account_userId_fkey")
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("account")
 }
 
-model address {
+model Address {
   id      String @id
   type    String
   address String
   userId  String
-  user    user   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Address_userId_fkey")
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "Address_userId_fkey")
+  @@index([userId])
+  @@map("address")
 }
 
-model menuitem {
+model MenuItem {
   id            Int         @id @default(autoincrement())
   nameEn        String
   nameAr        String
@@ -51,85 +53,95 @@ model menuitem {
   badge         String?
   rating        Float?      @default(0)
   reviews       Int         @default(0)
-  orderitem     orderitem[]
+  orderItems    OrderItem[]
+
+  @@map("menuitem")
 }
 
-model order {
-  id                                 String      @id
-  status                             String      @default("PENDING")
-  subtotal                           Float
-  deliveryFee                        Float
-  total                              Float
-  paymentMethod                      String
-  paymentStatus                      String      @default("PENDING")
-  deliveryAddress                    String
-  createdAt                          DateTime    @default(now())
-  deliveredAt                        DateTime?
-  rating                             Int?
-  userId                             String
-  deliveryPartnerId                  String?
-  user_order_deliveryPartnerIdTouser user?       @relation("order_deliveryPartnerIdTouser", fields: [deliveryPartnerId], references: [id], map: "Order_deliveryPartnerId_fkey")
-  user_order_userIdTouser            user        @relation("order_userIdTouser", fields: [userId], references: [id], map: "Order_userId_fkey")
-  orderitem                          orderitem[]
+model Order {
+  id                String      @id
+  status            String      @default("PENDING")
+  subtotal          Float
+  deliveryFee       Float
+  total             Float
+  paymentMethod     String
+  paymentStatus     String      @default("PENDING")
+  deliveryAddress   String
+  createdAt         DateTime    @default(now())
+  deliveredAt       DateTime?
+  rating            Int?
+  userId            String
+  deliveryPartnerId String?
+  deliveryPartner   User?       @relation("OrderDeliveryPartner", fields: [deliveryPartnerId], references: [id])
+  user              User        @relation("OrderUser", fields: [userId], references: [id])
+  items             OrderItem[]
 
-  @@index([deliveryPartnerId], map: "Order_deliveryPartnerId_fkey")
-  @@index([userId], map: "Order_userId_fkey")
+  @@index([deliveryPartnerId])
+  @@index([userId])
+  @@map("order")
 }
 
-model orderitem {
+model OrderItem {
   id         String   @id
   orderId    String
   menuItemId Int
   price      Float
   quantity   Int
-  menuitem   menuitem @relation(fields: [menuItemId], references: [id], map: "OrderItem_menuItemId_fkey")
-  order      order    @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "OrderItem_orderId_fkey")
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@index([menuItemId], map: "OrderItem_menuItemId_fkey")
-  @@index([orderId], map: "OrderItem_orderId_fkey")
+  @@index([menuItemId])
+  @@index([orderId])
+  @@map("orderitem")
 }
 
-model session {
+model Session {
   id           String   @id
-  sessionToken String   @unique(map: "Session_sessionToken_key")
+  sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Session_userId_fkey")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "Session_userId_fkey")
+  @@index([userId])
+  @@map("session")
 }
 
-model user {
-  id                                  String    @id
-  name                                String?
-  email                               String?   @unique(map: "User_email_key")
-  emailVerified                       DateTime?
-  image                               String?
-  hashedPassword                      String?
-  role                                user_role @default(USER)
-  phone                               String?
-  status                              String    @default("ACTIVE")
-  vehicle                             String?
-  rating                              Float?
-  isOnline                            Boolean   @default(false)
-  createdAt                           DateTime  @default(now())
-  account                             account[]
-  address                             address[]
-  order_order_deliveryPartnerIdTouser order[]   @relation("order_deliveryPartnerIdTouser")
-  order_order_userIdTouser            order[]   @relation("order_userIdTouser")
-  session                             session[]
+model User {
+  id             String    @id
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  role           UserRole  @default(USER)
+  phone          String?
+  status         String    @default("ACTIVE")
+  vehicle        String?
+  rating         Float?
+  isOnline       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  accounts       Account[]
+  addresses      Address[]
+  ordersAsPartner Order[]  @relation("OrderDeliveryPartner")
+  orders         Order[]   @relation("OrderUser")
+  sessions       Session[]
+
+  @@map("user")
 }
 
-model verificationtoken {
+model VerificationToken {
   identifier String
-  token      String   @unique(map: "VerificationToken_token_key")
+  token      String   @unique
   expires    DateTime
 
-  @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
+  @@unique([identifier, token])
+  @@map("verificationtoken")
 }
 
-enum user_role {
+enum UserRole {
   USER
   ADMIN
   DELIVERY_PARTNER
+
+  @@map("user_role")
 }

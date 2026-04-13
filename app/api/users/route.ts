@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
   try {
-    // Basic authorization check - only Admin should access this
     const session = await getServerSession(authOptions);
     if (!session || session.user?.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,9 +24,7 @@ export async function GET() {
           select: { orders: true }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json(users);
@@ -48,10 +46,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    // Create a mock walk-in user account. We append a random hash to ensure email uniqueness
     const randomHash = Math.random().toString(36).substring(7);
     const newUser = await prisma.user.create({
       data: {
+        id: uuidv4(),
         name: body.name,
         email: `walkin.${randomHash}@biryanispot.local`,
         phone: body.phone || null,

@@ -24,12 +24,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ENFORCE ADMIN ONLY: If a non-admin is somehow logged in, sign them out immediately
-  useEffect(() => {
-    if (session && session.user?.role !== 'ADMIN') {
-      signOut({ callbackUrl: '/auth' });
-    }
-  }, [session]);
+  // Role-based nav links are handled below — no forced signout needed
 
   const navLinks = [
     { href: '/', label: t.nav.home },

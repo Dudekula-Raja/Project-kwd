@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(req: Request) {
   try {
@@ -10,12 +11,8 @@ export async function GET(req: Request) {
     const partnerId = searchParams.get('partnerId');
 
     const whereClause: { userId?: string; deliveryPartnerId?: string } = {};
-    if (userId) {
-      whereClause.userId = userId;
-    }
-    if (partnerId) {
-      whereClause.deliveryPartnerId = partnerId;
-    }
+    if (userId) whereClause.userId = userId;
+    if (partnerId) whereClause.deliveryPartnerId = partnerId;
 
     const orders = await prisma.order.findMany({
       where: whereClause,
@@ -30,13 +27,12 @@ export async function GET(req: Request) {
           select: { name: true, phone: true }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json(orders);
   } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to read orders data' }, { status: 500 });
   }
 }
@@ -47,6 +43,7 @@ export async function POST(req: Request) {
 
     const newOrder = await prisma.order.create({
       data: {
+        id: uuidv4(),
         userId: body.userId,
         deliveryAddress: body.deliveryAddress || 'Dine-In',
         subtotal: body.subtotal,
@@ -58,21 +55,20 @@ export async function POST(req: Request) {
         deliveredAt: body.status === 'DELIVERED' ? new Date() : null,
         items: {
           create: body.items.map((item: { id: number; price: number; quantity: number }) => ({
+            id: uuidv4(),
             menuItemId: item.id,
             price: item.price,
             quantity: item.quantity
           }))
         }
       },
-      include: {
-        items: true
-      }
+      include: { items: true }
     });
 
     return NextResponse.json(newOrder, { status: 201 });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: 'Failed to create order', details: err }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create order', details: String(err) }, { status: 500 });
   }
 }
 
@@ -89,7 +85,7 @@ export async function PUT(req: Request) {
     });
 
     return NextResponse.json(updatedOrder);
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
@@ -107,9 +103,7 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
-    await prisma.order.delete({
-      where: { id: id.toString() }
-    });
+    await prisma.order.delete({ where: { id: id.toString() } });
 
     return NextResponse.json({ success: true });
   } catch (err) {

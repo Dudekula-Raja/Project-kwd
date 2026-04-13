@@ -15,7 +15,7 @@ export const authOptions: AuthOptions = {
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: profile.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase()
+          role: profile.email?.toLowerCase() === (process.env.ADMIN_EMAIL ?? 'biryanispot.kwt@gmail.com').toLowerCase()
             ? 'ADMIN'
             : 'USER'
         };

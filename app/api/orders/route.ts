@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(req: Request) {
@@ -19,12 +17,6 @@ export async function GET(req: Request) {
       include: {
         items: {
           include: { menuItem: true }
-        },
-        user: {
-          select: { name: true, email: true, phone: true }
-        },
-        deliveryPartner: {
-          select: { name: true, phone: true }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -44,7 +36,7 @@ export async function POST(req: Request) {
     const newOrder = await prisma.order.create({
       data: {
         id: uuidv4(),
-        userId: body.userId,
+        userId: body.userId || 'admin-001',
         deliveryAddress: body.deliveryAddress || 'Dine-In',
         subtotal: body.subtotal,
         deliveryFee: body.deliveryFee || 0,
@@ -93,18 +85,12 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
     await prisma.order.delete({ where: { id: id.toString() } });
-
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);

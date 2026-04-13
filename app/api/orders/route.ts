@@ -1,84 +1,49 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const partnerId = searchParams.get('partnerId');
-
-    const whereClause: { userId?: string; deliveryPartnerId?: string } = {};
-    if (userId) whereClause.userId = userId;
-    if (partnerId) whereClause.deliveryPartnerId = partnerId;
-
-    const orders = await prisma.order.findMany({
-      where: whereClause,
-      include: {
-        items: {
-          include: { menuItem: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
+    const filter = userId ? { userid: userId } : undefined;
+    const orders = await supabase.from('order').select(filter);
     return NextResponse.json(orders);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Failed to read orders data' }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
-    const newOrder = await prisma.order.create({
-      data: {
-        id: uuidv4(),
-        userId: body.userId || 'admin-001',
-        deliveryAddress: body.deliveryAddress || 'Dine-In',
-        subtotal: body.subtotal,
-        deliveryFee: body.deliveryFee || 0,
-        total: body.total,
-        paymentMethod: body.paymentMethod || 'COD',
-        paymentStatus: body.paymentStatus || 'PENDING',
-        status: body.status || 'PENDING',
-        deliveredAt: body.status === 'DELIVERED' ? new Date() : null,
-        items: {
-          create: body.items.map((item: { id: number; price: number; quantity: number }) => ({
-            id: uuidv4(),
-            menuItemId: item.id,
-            price: item.price,
-            quantity: item.quantity
-          }))
-        }
-      },
-      include: { items: true }
+    const newOrder = await supabase.from('order').insert({
+      id: `ORD-${Date.now()}`,
+      userid: body.userId || 'admin-001',
+      status: body.status || 'PENDING',
+      subtotal: body.subtotal,
+      deliveryfee: body.deliveryFee || 0,
+      total: body.total,
+      paymentmethod: body.paymentMethod || 'CASH',
+      paymentstatus: body.paymentStatus || 'PENDING',
+      deliveryaddress: body.deliveryAddress || 'Dine-In',
+      items: body.items || [],
+      createdat: new Date().toISOString(),
+      deliveredat: body.status === 'DELIVERED' ? new Date().toISOString() : null,
     });
-
     return NextResponse.json(newOrder, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Failed to create order', details: String(err) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, ...updateData } = body;
-
-    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-
-    const updatedOrder = await prisma.order.update({
-      where: { id: id.toString() },
-      data: updateData
-    });
-
-    return NextResponse.json(updatedOrder);
-  } catch (err) {
-    console.error(err);
+    const { id, ...rest } = body;
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    const updated = await supabase.from('order').update(id, rest);
+    return NextResponse.json(updated);
+  } catch {
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
 }
@@ -87,13 +52,10 @@ export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-
-    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-
-    await prisma.order.delete({ where: { id: id.toString() } });
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    await supabase.from('order').delete(id);
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error(err);
+  } catch {
     return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });
   }
 }
